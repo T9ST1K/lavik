@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мои расходы</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Расходы">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0E7C86">
+<style>
+:root{--bg:#EEF3F4;--surface:#FFFFFF;--ink:#13262B;--muted:#5F7479;--line:#D5E0E2;--accent:#0E7C86;--accent-ink:#FFFFFF;--danger:#B3372F;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1C20;--surface:#172A2F;--ink:#E7F0F1;--muted:#8FA5A9;--line:#274146;--accent:#3FC1CC;--accent-ink:#06262A;--danger:#FF8A80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1C20;--surface:#172A2F;--ink:#E7F0F1;--muted:#8FA5A9;--line:#274146;--accent:#3FC1CC;--accent-ink:#06262A;--danger:#FF8A80;color-scheme:dark}
+*{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 Onest,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.top button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer}
+.month{font-weight:700;font-size:18px;text-transform:capitalize}
+.total{margin:18px 0 4px;font-size:clamp(40px,10vw,60px);font-weight:700;letter-spacing:-.02em;line-height:1.05}
+.sub{color:var(--muted);margin:0 0 20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px;font-weight:700}
+.bars{display:grid;gap:10px}
+.bar .row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px}
+.bar .track{height:10px;background:var(--bg);border-radius:6px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:6px;transition:width .3s}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+form .wide{grid-column:1/-1}
+input,select{width:100%;height:48px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:0 12px;font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.add{height:48px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:700 16px Onest,system-ui,sans-serif;cursor:pointer}
+.day{color:var(--muted);font-size:13px;margin:14px 0 6px}
+.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.item .what{flex:1;min-width:0}
+.item .cat{font-weight:500}
+.item .note{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .sum{font-weight:700;white-space:nowrap}
+.item button{background:none;border:0;color:var(--danger);font-size:20px;width:44px;height:44px;cursor:pointer}
+.empty{color:var(--muted);margin:0}
+.cur{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:var(--muted);font-size:14px;margin-top:8px}
+.cur select{width:auto;height:36px}
+.bar .fill.over{background:var(--danger)}.row2{display:flex;justify-content:space-between;padding:5px 0}.neg{color:var(--danger)}.chart{display:flex;align-items:flex-end;gap:8px;height:150px}.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}.col small{color:var(--muted);font-size:12px}.cb{width:100%;background:var(--line);border-radius:6px 6px 0 0;min-height:2px}.cb.cur{background:var(--accent)}
+.lims{display:grid;gap:10px}.lims label{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:15px}.lims input{width:140px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <button id="prev" aria-label="Прошлый месяц">‹</button>
+    <div class="month" id="month"></div>
+    <button id="next" aria-label="Следующий месяц">›</button>
+  </div>
+  <div class="total" id="total"></div>
+  <p class="sub" id="sub"></p>
+  <div class="panel" id="stats"></div>
+  <div class="panel"><h2>Последние 6 месяцев</h2><div class="chart" id="chart"></div></div>
+
+  <div class="panel">
+    <h2>Новая трата</h2>
+    <form id="form">
+      <input id="amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required>
+      <select id="cat"></select>
+      <input id="note" class="wide" type="text" maxlength="60" placeholder="Заметка (необязательно)">
+      <input id="date" type="date" required>
+      <button class="add" type="submit">Добавить</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>По категориям</h2>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Траты</h2>
+    <input id="q" type="search" placeholder="Поиск по тратам" style="margin-bottom:8px"><div id="list"></div>
+  </div>
+
+  <div class="panel"><h2>Регулярные платежи</h2><form id="rform"><input id="ramount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required><select id="rcat"></select><input id="rnote" class="wide" type="text" maxlength="40" placeholder="Название (аренда, подписка)"><input id="rday" type="number" min="1" max="31" placeholder="День месяца" required><button class="add" type="submit">Добавить</button></form><div id="rlist"></div></div>
+  <div class="panel"><h2>Категории</h2><form id="cform" style="grid-template-columns:1fr auto"><input id="cname" type="text" maxlength="20" placeholder="Новая категория" required><button class="add" type="submit" style="padding:0 16px">Добавить</button></form><div id="clist"></div></div>
+  <div class="panel"><h2>Бюджет на месяц</h2><div class="lims" id="lim"></div></div>
+  <div class="panel"><h2>Сколько можно откладывать</h2><div id="saveBox" style="margin-bottom:12px"></div><div class="lims"><label>Цель (необязательно)<input id="goal" type="number" inputmode="decimal" min="0"></label></div><p class="sub" id="calcOut" style="margin:12px 0 0"></p></div>
+  <div class="cur">Валюта <select id="cur"><option>₽</option><option>£</option><option>$</option><option>€</option></select></div>
+</main>
+<script>
+(function(){
+  var DEF=["Еда","Транспорт","Дом","Развлечения","Здоровье","Другое"];var CATS=DEF.slice();
+  var KEY="expenses-v1";
+  var state={items:[],cur:"₽"};
+  try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&Array.isArray(p.items)){state=p;}}}catch(e){}
+  state.limits=state.limits||{};state.income=state.income||0;state.rec=state.rec||[];state.cats=state.cats||DEF.slice();CATS=state.cats;
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+  var now=new Date();
+  var view={y:now.getFullYear(),m:now.getMonth()};
+  function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function fmt(n){return new Intl.NumberFormat("ru-RU",{maximumFractionDigits:2}).format(n)+" "+state.cur;}
+
+  var $=function(id){return document.getElementById(id);};
+  function monthItems(y,m){var key=y+"-"+String(m+1).padStart(2,"0");var dim=new Date(y,m+1,0).getDate();var r=state.items.filter(function(i){return i.date.indexOf(key)===0;});state.rec.forEach(function(x){if(x.from<=key){r.push({id:"r"+x.id,amount:x.amount,cat:x.cat,note:x.note,date:key+"-"+String(Math.min(x.day,dim)).padStart(2,"0"),rec:1});}});return r;}
+  var catSel=$("cat");
+  var rcat=$("rcat");
+  function fillCats(){[catSel,rcat].forEach(function(s){var v=s.value;s.textContent="";CATS.forEach(function(c){var o=document.createElement("option");o.textContent=c;s.appendChild(o);});if(CATS.indexOf(v)>-1)s.value=v;});}
+  fillCats();
+  $("date").value=iso(now);
+  $("cur").value=state.cur||"₽";
+
+  function render(){
+    var key=view.y+"-"+String(view.m+1).padStart(2,"0");
+    $("month").textContent=new Date(view.y,view.m,1).toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
+    var all=monthItems(view.y,view.m);var items=all.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.id-a.id;});
+    var total=all.reduce(function(s,i){return s+i.amount;},0);
+    $("total").textContent=fmt(total);
+    $("sub").textContent=items.length?("Записей: "+items.length):"В этом месяце трат пока нет";
+    var dim=new Date(view.y,view.m+1,0).getDate();
+    var isNow=(view.y===now.getFullYear()&&view.m===now.getMonth());
+    var dl=isNow?dim-now.getDate()+1:(new Date(view.y,view.m,1)>now?dim:0);
+    var inc=state.income||0,left=inc-total;
+    var st=$("stats");st.textContent="";
+    function line(a,b,cls){var r=document.createElement("div");r.className="row2";var x=document.createElement("span");x.textContent=a;var y=document.createElement("b");y.textContent=b;if(cls)y.className=cls;r.appendChild(x);r.appendChild(y);st.appendChild(r);}
+    if(inc){line("Доход",fmt(inc));line("Осталось",fmt(left),left<0?"neg":"");if(dl&&left>0)line("Можно тратить в день",fmt(left/dl));}else{line("Укажи доход в разделе «Бюджет на месяц», и я посчитаю, сколько можно тратить в день","");}
+    if(isNow&&total>0){line("Средняя трата в день",fmt(total/now.getDate()));line("Прогноз трат на месяц",fmt(total/now.getDate()*dim));}
+    calc();var ch=$("chart");ch.textContent="";var mx=1,ms=[];
+    for(var k=5;k>=0;k--){var dd=new Date(view.y,view.m-k,1);var tt=monthItems(dd.getFullYear(),dd.getMonth()).reduce(function(s,i){return s+i.amount;},0);ms.push({l:dd.toLocaleDateString("ru-RU",{month:"short"}),t:tt});mx=Math.max(mx,tt);}
+    ms.forEach(function(o,n){var col=document.createElement("div");col.className="col";var v=document.createElement("small");v.textContent=o.t?Math.round(o.t):"";var bar=document.createElement("div");bar.className="cb"+(n===5?" cur":"");bar.style.height=(o.t/mx*90)+"px";var l=document.createElement("small");l.textContent=o.l;col.appendChild(v);col.appendChild(bar);col.appendChild(l);ch.appendChild(col);});
+
+    var sums={};items.forEach(function(i){sums[i.cat]=(sums[i.cat]||0)+i.amount;});
+    var bars=$("bars");bars.textContent="";
+    var rows=Object.keys(sums).sort(function(a,b){return sums[b]-sums[a];});
+    if(!rows.length){var e=document.createElement("p");e.className="empty";e.textContent="Добавь первую трату выше.";bars.appendChild(e);}
+    rows.forEach(function(c){
+      var d=document.createElement("div");d.className="bar";
+      var r=document.createElement("div");r.className="row";
+      var a=document.createElement("span");a.textContent=c;
+      var b=document.createElement("span");var L=state.limits[c]||0;b.textContent=fmt(sums[c])+(L?" из "+fmt(L):"");
+      r.appendChild(a);r.appendChild(b);
+      var t=document.createElement("div");t.className="track";
+      var f=document.createElement("div");f.className="fill";f.style.width=Math.min(100,sums[c]/(L||total)*100)+"%";if(L&&sums[c]>L)f.className="fill over";
+      t.appendChild(f);d.appendChild(r);d.appendChild(t);bars.appendChild(d);
+    });
+
+    var list=$("list");list.textContent="";
+    if(!items.length){var e2=document.createElement("p");e2.className="empty";e2.textContent="Список пуст.";list.appendChild(e2);}
+    var last="";var q=($("q").value||"").trim().toLowerCase();
+    items.forEach(function(i){
+      if(q&&(i.cat+" "+i.note).toLowerCase().indexOf(q)<0)return;if(i.date!==last){
+        last=i.date;
+        var h=document.createElement("div");h.className="day";
+        var p=i.date.split("-");
+        h.textContent=new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString("ru-RU",{day:"numeric",month:"long",weekday:"short"});
+        list.appendChild(h);
+      }
+      var row=document.createElement("div");row.className="item";
+      var w=document.createElement("div");w.className="what";
+      var c=document.createElement("div");c.className="cat";c.textContent=(i.rec?"↻ ":"")+i.cat;
+      w.appendChild(c);
+      if(i.note){var n=document.createElement("div");n.className="note";n.textContent=i.note;w.appendChild(n);}
+      var s=document.createElement("div");s.className="sum";s.textContent=fmt(i.amount);
+      var x=document.createElement("button");x.type="button";x.textContent="×";x.setAttribute("aria-label","Удалить");
+      x.onclick=function(){state.items=state.items.filter(function(z){return z.id!==i.id;});save();render();};
+      row.appendChild(w);row.appendChild(s);if(!i.rec)row.appendChild(x);list.appendChild(row);
+    });
+  }
+
+  $("form").addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var amount=parseFloat($("amount").value);
+    if(!(amount>0))return;
+    var date=$("date").value||iso(new Date());
+    state.items.push({id:Date.now(),amount:amount,cat:catSel.value,note:$("note").value.trim(),date:date});
+    save();
+    $("amount").value="";$("note").value="";
+    var p=date.split("-");view.y=+p[0];view.m=+p[1]-1;
+    render();$("amount").focus();
+  });
+  $("prev").onclick=function(){view.m--;if(view.m<0){view.m=11;view.y--;}render();};
+  $("next").onclick=function(){view.m++;if(view.m>11){view.m=0;view.y++;}render();};
+  $("cur").onchange=function(){state.cur=this.value;save();render();};
+  var lim=$("lim");
+  function lrow(label,val,fn){var l=document.createElement("label");l.appendChild(document.createTextNode(label));var i=document.createElement("input");i.type="number";i.inputMode="decimal";i.min="0";i.placeholder="0";if(val)i.value=val;i.onchange=function(){fn(parseFloat(i.value)||0);save();render();};l.appendChild(i);lim.appendChild(l);}
+  
+  function buildLim(){lim.textContent="";lrow("Доход в месяц",state.income,function(v){state.income=v;});CATS.forEach(function(c){lrow("Лимит: "+c,state.limits[c],function(v){state.limits[c]=v;});});}
+  buildLim();
+  function calc(){var inc=state.income||0,sum=0,cnt=0;for(var k=0;k<3;k++){var d=new Date(now.getFullYear(),now.getMonth()-k,1);var t=monthItems(d.getFullYear(),d.getMonth()).reduce(function(s,i){return s+i.amount;},0);if(k===0&&t>0&&now.getDate()>=7){t=t/now.getDate()*new Date(now.getFullYear(),now.getMonth()+1,0).getDate();}if(t>0){sum+=t;cnt++;}}var avg=cnt?sum/cnt:0,free=inc-avg;var box=$("saveBox");box.textContent="";function ln(a,b,cls){var r=document.createElement("div");r.className="row2";var x=document.createElement("span");x.textContent=a;var y=document.createElement("b");y.textContent=b;if(cls)y.className=cls;r.appendChild(x);r.appendChild(y);box.appendChild(r);}var save=free*0.8;if(!inc){ln("Укажи доход в разделе «Бюджет на месяц»","");}else if(!cnt){ln("Добавь траты, и я посчитаю","");}else{ln("Доход",fmt(inc));ln("Расходы в месяц (среднее)",fmt(avg));ln("Свободно",fmt(free),free<0?"neg":"");if(free>0){ln("Откладывать в месяц (80% свободных)",fmt(save));ln("За год",fmt(save*12));}else{ln("Расходы больше дохода, сначала сократи траты","","neg");}}var g=parseFloat($("goal").value);$("calcOut").textContent=(g>0&&inc&&save>0)?("До цели примерно "+Math.ceil(g/save)+" мес."):"";}
+  $("goal").oninput=calc;calc();
+  $("q").oninput=render;
+  function xbtn(fn){var b=document.createElement("button");b.type="button";b.textContent="×";b.setAttribute("aria-label","Удалить");b.onclick=fn;return b;}
+  function rrender(){var rl=$("rlist");rl.textContent="";state.rec.forEach(function(x){var row=document.createElement("div");row.className="item";var w=document.createElement("div");w.className="what";w.textContent=(x.note||x.cat)+", "+x.day+"-го числа";var s=document.createElement("div");s.className="sum";s.textContent=fmt(x.amount);row.appendChild(w);row.appendChild(s);row.appendChild(xbtn(function(){state.rec=state.rec.filter(function(z){return z.id!==x.id;});save();rrender();render();}));rl.appendChild(row);});}
+  $("rform").addEventListener("submit",function(e){e.preventDefault();var a=parseFloat($("ramount").value),d=parseInt($("rday").value,10);if(!(a>0)||!(d>=1&&d<=31))return;state.rec.push({id:Date.now(),amount:a,cat:rcat.value,note:$("rnote").value.trim(),day:d,from:view.y+"-"+String(view.m+1).padStart(2,"0")});save();this.reset();rrender();render();});
+  function crender(){var cl=$("clist");cl.textContent="";CATS.forEach(function(c){var row=document.createElement("div");row.className="item";var w=document.createElement("div");w.className="what";w.textContent=c;row.appendChild(w);row.appendChild(xbtn(function(){if(CATS.length<2)return;CATS=CATS.filter(function(z){return z!==c;});state.cats=CATS;save();fillCats();buildLim();crender();render();}));cl.appendChild(row);});}
+  $("cform").addEventListener("submit",function(e){e.preventDefault();var n=$("cname").value.trim();if(n&&CATS.indexOf(n)<0){CATS.push(n);state.cats=CATS;save();fillCats();buildLim();crender();}this.reset();});
+  rrender();crender();
+  render();
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+</body>
+</html>
